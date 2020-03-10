@@ -1,10 +1,10 @@
 //****************************************************
-// File name:  CS460_SysCalls.c
+// File name:  CS460_Shell.c
 // Author:     Julian Bunch
-// Date:       02/12/2020
+// Date:       03/03/2020
 // Class:      CS460
-// Assignment: SysCalls
-// Purpose:    Practice using system calls
+// Assignment: Shell
+// Purpose:    Create our own Linux shell
 //****************************************************
 
 #include<stdio.h>
@@ -101,11 +101,13 @@ int main(int argc, char *argv[])
 				pToken = strtok_r(NULL, " ", &pSavePtr);
 				argIndex++;
 
+				// If token is a pipe
 				if (strcmp(pToken, PIPE) == 0)
 				{
 					psCommands[commandIndex]->szOutput = "PIPE";
 					commandIndex++;
 				}
+				// If token is a >
 				else if (strcmp(pToken, OUTPUT) == 0)
 				{
 					pToken = strtok_r(NULL, " ", &pSavePtr);
@@ -114,6 +116,7 @@ int main(int argc, char *argv[])
 					pToken = strtok_r(NULL, " ", &pSavePtr);
 					argIndex++;
 				}
+				// If token is a <
 				else if (strcmp(pToken, INPUT) == 0)
 				{
 					pToken = strtok_r(NULL, " ", &pSavePtr);
@@ -123,6 +126,7 @@ int main(int argc, char *argv[])
 					argIndex++;
 				}
 
+				// If token is an argument for the command
 				if (strcmp(pToken, END_COMMAND) != 0 && strcmp(pToken, PIPE) != 0 && strcmp(pToken, BACKGROUND) != 0)
 				{
 					if (NULL == psCommands[commandIndex]->szArguments)
@@ -135,6 +139,7 @@ int main(int argc, char *argv[])
 						strcat(psCommands[commandIndex]->szArguments, " ");
 					}
 				}
+				// If token is an &
 				else if (strcmp(pToken, BACKGROUND) == 0)
 				{
 					psCommands[commandIndex]->bBackground = true;
