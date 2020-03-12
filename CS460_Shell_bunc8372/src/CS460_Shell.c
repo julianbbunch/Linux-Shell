@@ -24,13 +24,15 @@ typedef struct Command
 
 } Command;
 
+// TODO: Figure out why "cat dog ; cat bug &" doesn't work
+
 int main(int argc, char *argv[])
 {
 	const size_t MAX_COMMAND_SIZE = 2048;
-	const char* EXIT = "exit";
+	const char* EXIT = "exit\n";
 	const char* PIPE = "|";
 	const char* END_COMMAND = ";";
-	const char* BACKGROUND = "&\n";
+	const char* BACKGROUND = "&";
 	const char* OUTPUT = ">";
 	const char* INPUT = "<";
 
@@ -42,6 +44,7 @@ int main(int argc, char *argv[])
 	char *szArgsBackup = malloc(MAX_COMMAND_SIZE);
 	char *pToken;
 	char *pSavePtr;
+	char *szTempArgs;
 
 	do
 	{
@@ -55,7 +58,6 @@ int main(int argc, char *argv[])
 		printf("%d>", pid);
 		getline(&szArgs, (size_t*)&MAX_COMMAND_SIZE, stdin);
 		memcpy(szArgsBackup, szArgs, strlen(szArgs));
-		printf("%s", szArgs);
 
 		// Fill data structure(s)
 		do
@@ -74,8 +76,8 @@ int main(int argc, char *argv[])
 				psCommands[commandIndex + 1] = NULL;
 				argIndex = 0;
 
-				// If the token was a pipe, set input to pipe
-				if (strcmp(pToken, PIPE) == 0)
+				// If the last token was a pipe, set input to pipe
+				if (pToken && !strcmp(pToken, PIPE))
 				{
 					psCommands[commandIndex]->szInput = "PIPE";
 				}
@@ -86,11 +88,11 @@ int main(int argc, char *argv[])
 			{
 				if (0 == commandIndex)
 				{
-					pToken = strtok_r(szArgs, " ", &pSavePtr);
+					pToken = strtok_r(szArgs, " \n", &pSavePtr);
 				}
 				else
 				{
-					pToken = strtok_r(NULL, " ", &pSavePtr);
+					pToken = strtok_r(NULL, " \n", &pSavePtr);
 				}
 				argIndex++;
 				psCommands[commandIndex]->szCommand = pToken;
@@ -98,120 +100,135 @@ int main(int argc, char *argv[])
 			// Tokens following the first
 			else
 			{
-				pToken = strtok_r(NULL, " ", &pSavePtr);
+				pToken = strtok_r(NULL, " \n", &pSavePtr);
 				argIndex++;
 
-				// If token is a pipe
-				if (strcmp(pToken, PIPE) == 0)
+				if (pToken)
 				{
-					psCommands[commandIndex]->szOutput = "PIPE";
-					commandIndex++;
+					// If token is a pipe
+					if (!strcmp(pToken, PIPE))
+					{
+						psCommands[commandIndex]->szOutput = "PIPE";
+						commandIndex++;
+					}
+					// If token is a >
+					else if (!strcmp(pToken, OUTPUT))
+					{
+						pToken = strtok_r(NULL, " \n", &pSavePtr);
+						argIndex++;
+						psCommands[commandIndex]->szOutput = pToken;
+						pToken = strtok_r(NULL, " \n", &pSavePtr);
+						argIndex++;
+					}
+					// If token is a <
+					else if (!strcmp(pToken, INPUT))
+					{
+						pToken = strtok_r(NULL, " \n", &pSavePtr);
+						argIndex++;
+						psCommands[commandIndex]->szInput = pToken;
+						pToken = strtok_r(NULL, " \n", &pSavePtr);
+						argIndex++;
+					}
+
+					// If token is an argument for the command
+					if (pToken && strcmp(pToken, END_COMMAND) && strcmp(pToken, PIPE) && strcmp(pToken, BACKGROUND))
+					{
+						if (NULL == psCommands[commandIndex]->szArguments)
+						{
+							//szTempArgs = pToken;
+							psCommands[commandIndex]->szArguments = pToken;
+						}
+						else
+						{
+							//strcat(pToken, " ");
+							strcat(psCommands[commandIndex]->szArguments, pToken);
+						}
+					}
+					// If token is an &
+					else if (pToken && !strcmp(pToken, BACKGROUND))
+					{
+						psCommands[commandIndex]->bBackground = true;
+						//commandIndex++;
+						pToken = strtok_r(NULL, " \n", &pSavePtr);
+						argIndex++;
+					}
+					// If token was a ;
+					else if (pToken && !strcmp(pToken, END_COMMAND))
+					{
+						commandIndex++;
+					}
 				}
-				// If token is a >
-				else if (strcmp(pToken, OUTPUT) == 0)
+			}
+		}while (pToken);
+
+		// Print Commands
+		if (strcmp(szArgsBackup, EXIT))
+		{
+			for (int i = 0; i < commandIndex + 1; i++)
+			{
+				// command
+				printf("command: %s\n", psCommands[i]->szCommand);
+
+				// arguments
+				if (psCommands[i]->szArguments != NULL)
 				{
-					pToken = strtok_r(NULL, " ", &pSavePtr);
-					argIndex++;
-					psCommands[commandIndex]->szOutput = pToken;
-					pToken = strtok_r(NULL, " ", &pSavePtr);
-					argIndex++;
+					printf("\targuments: %s\n", psCommands[i]->szArguments);
 				}
-				// If token is a <
-				else if (strcmp(pToken, INPUT) == 0)
+				else
 				{
-					pToken = strtok_r(NULL, " ", &pSavePtr);
-					argIndex++;
-					psCommands[commandIndex]->szInput = pToken;
-					pToken = strtok_r(NULL, " ", &pSavePtr);
-					argIndex++;
+					printf("\targuments: none\n");
 				}
 
-				// If token is an argument for the command
-				if (strcmp(pToken, END_COMMAND) != 0 && strcmp(pToken, PIPE) != 0 && strcmp(pToken, BACKGROUND) != 0)
+				// redirection
+				printf("\tredirection:\n");
+
+				// input
+				if (psCommands[i]->szInput != NULL)
 				{
-					if (NULL == psCommands[commandIndex]->szArguments)
+					printf("\t\tstdin: %s\n", psCommands[i]->szInput);
+				}
+				else
+				{
+					printf("\t\tstdin: none\n");
+				}
+
+				// output
+				if (psCommands[i]->szOutput != NULL)
+				{
+					printf("\t\tstdout: %s\n", psCommands[i]->szOutput);
+				}
+				else
+				{
+					printf("\t\tstdout: none\n");
+				}
+
+				// pipe
+				if (psCommands[i]->bPipe)
+				{
+					printf("\tpipe: YES\n");
+				}
+				else
+				{
+					printf("\tpipe: none\n");
+				}
+
+				// background
+				if ( !(i < commandIndex && psCommands[i]->szOutput && !strcmp(psCommands[i]->szOutput, psCommands[i + 1]->szInput)) || i == commandIndex)
+				{
+					if (psCommands[i]->bBackground)
 					{
-						psCommands[commandIndex]->szArguments = pToken;
+						printf("background: YES\n");
 					}
 					else
 					{
-						strcat(psCommands[commandIndex]->szArguments, pToken);
-						strcat(psCommands[commandIndex]->szArguments, " ");
+						printf("background: no\n");
 					}
 				}
-				// If token is an &
-				else if (strcmp(pToken, BACKGROUND) == 0)
-				{
-					psCommands[commandIndex]->bBackground = true;
-					commandIndex++;
-					pToken = strtok_r(NULL, " ", &pSavePtr);
-					argIndex++;
-				}
-			}
-		}while (pToken != NULL);
-
-		// Print Commands
-		for (int i = 0; i < commandIndex; i++)
-		{
-			// command
-			printf("command: %s\n", psCommands[i]->szCommand);
-
-			// arguments
-			if (psCommands[i]->szArguments != NULL)
-			{
-				printf("\targuments: %s\n", psCommands[i]->szArguments);
-			}
-			else
-			{
-				printf("\targuments: none\n");
-			}
-
-			// redirection
-			printf("\tredirection:\n");
-
-			// input
-			if (psCommands[i]->szInput != NULL)
-			{
-				printf("\t\tstdin: %s\n", psCommands[i]->szInput);
-			}
-			else
-			{
-				printf("\t\tstdin: none\n");
-			}
-
-			// output
-			if (psCommands[i]->szOutput != NULL)
-			{
-				printf("\t\tstdout: %s\n", psCommands[i]->szOutput);
-			}
-			else
-			{
-				printf("\t\tstdout: none\n");
-			}
-
-			// pipe
-			if (psCommands[i]->bPipe)
-			{
-				printf("\tpipe: YES\n");
-			}
-			else
-			{
-				printf("\tpipe: none\n");
-			}
-
-			// background
-			if (psCommands[i]->bBackground)
-			{
-				printf("background: YES\n");
-			}
-			else
-			{
-				printf("background: no\n");
 			}
 		}
 
 		// Free Commands
-		for (int i = 0; i < commandIndex; i++)
+		for (int i = 0; i < commandIndex + 1; i++)
 		{
 			free(psCommands[i]);
 		}
@@ -219,7 +236,7 @@ int main(int argc, char *argv[])
 		argIndex = 0;
 		commandIndex = 0;
 
-	}while (strcmp(szArgs, EXIT) != 0);
+	}while (strcmp(szArgsBackup, EXIT));
 
 	free(szArgs);
 	free(szArgsBackup);
