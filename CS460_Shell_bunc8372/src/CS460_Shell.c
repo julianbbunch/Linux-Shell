@@ -16,15 +16,13 @@
 typedef struct Command
 {
 	char* szCommand;
-	char* szArguments;
+	char** szArguments;
 	char* szInput;
 	char* szOutput;
 	bool bPipe;
 	bool bBackground;
 
 } Command;
-
-// TODO: Figure out why "cat dog ; cat bug &" doesn't work
 
 int main(int argc, char *argv[])
 {
@@ -42,9 +40,8 @@ int main(int argc, char *argv[])
 	int argIndex = 0;
 	char *szArgs = malloc(MAX_COMMAND_SIZE);
 	char *szArgsBackup = malloc(MAX_COMMAND_SIZE);
-	char *pToken;
+	char *pToken = NULL;
 	char *pSavePtr;
-	char *szTempArgs;
 
 	do
 	{
@@ -69,11 +66,14 @@ int main(int argc, char *argv[])
 
 				// NULL member variables
 				psCommands[commandIndex]->szCommand = NULL;
-				psCommands[commandIndex]->szArguments = NULL;
+				psCommands[commandIndex]->szArguments = malloc(sizeof(char*));
+				psCommands[commandIndex]->szArguments[0] = NULL;
 				psCommands[commandIndex]->szInput = NULL;
 				psCommands[commandIndex]->szOutput = NULL;
+				psCommands[commandIndex]->bPipe = false;
+				psCommands[commandIndex]->bBackground = false;
 
-				psCommands[commandIndex + 1] = NULL;
+				//psCommands[commandIndex + 1] = NULL;
 				argIndex = 0;
 
 				// If the last token was a pipe, set input to pipe
@@ -82,6 +82,8 @@ int main(int argc, char *argv[])
 					psCommands[commandIndex]->szInput = "PIPE";
 				}
 			}
+
+
 
 			// First token of a new command must be the command
 			if (argIndex == 0)
@@ -133,15 +135,13 @@ int main(int argc, char *argv[])
 					// If token is an argument for the command
 					if (pToken && strcmp(pToken, END_COMMAND) && strcmp(pToken, PIPE) && strcmp(pToken, BACKGROUND))
 					{
-						if (NULL == psCommands[commandIndex]->szArguments)
+						if (!psCommands[commandIndex]->szArguments[0])
 						{
-							//szTempArgs = pToken;
-							psCommands[commandIndex]->szArguments = pToken;
+							psCommands[commandIndex]->szArguments[0] = pToken;
 						}
 						else
 						{
-							//strcat(pToken, " ");
-							strcat(psCommands[commandIndex]->szArguments, pToken);
+							psCommands[commandIndex]->szArguments[argIndex - 2] = pToken;
 						}
 					}
 					// If token is an &
@@ -170,9 +170,14 @@ int main(int argc, char *argv[])
 				printf("command: %s\n", psCommands[i]->szCommand);
 
 				// arguments
-				if (psCommands[i]->szArguments != NULL)
+				if (psCommands[i]->szArguments[0])
 				{
-					printf("\targuments: %s\n", psCommands[i]->szArguments);
+					printf("\targuments:");
+					for (int j = 0; psCommands[i]->szArguments[j]; j++)
+					{
+						printf(" %s", psCommands[i]->szArguments[j]);
+					}
+					printf("\n");
 				}
 				else
 				{
@@ -230,7 +235,10 @@ int main(int argc, char *argv[])
 		// Free Commands
 		for (int i = 0; i < commandIndex + 1; i++)
 		{
+			free(psCommands[i]->szArguments);
+			memset(psCommands[i], '\0', sizeof(Command));
 			free(psCommands[i]);
+			psCommands[i] = NULL;
 		}
 		pToken = NULL;
 		argIndex = 0;
