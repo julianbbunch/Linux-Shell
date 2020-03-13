@@ -24,6 +24,13 @@ typedef struct Command
 
 } Command;
 
+/****************************************************************************
+ Function:    main
+ Description: Runs a shell
+ Parameters:  argc - number of command line arguments
+              argv - argument values
+ Returned:    0
+****************************************************************************/
 int main(int argc, char *argv[])
 {
 	const size_t MAX_COMMAND_SIZE = 2048;
