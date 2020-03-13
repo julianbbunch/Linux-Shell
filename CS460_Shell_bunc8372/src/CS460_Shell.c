@@ -140,7 +140,8 @@ int main(int argc, char *argv[])
 					}
 
 					// If token is an argument for the command
-					if (pToken && strcmp(pToken, END_COMMAND) && strcmp(pToken, PIPE) && strcmp(pToken, BACKGROUND))
+					if (pToken && strcmp(pToken, END_COMMAND) &&
+							strcmp(pToken, PIPE) && strcmp(pToken, BACKGROUND))
 					{
 						if (!psCommands[commandIndex]->szArguments[0])
 						{
@@ -225,7 +226,9 @@ int main(int argc, char *argv[])
 				}
 
 				// background
-				if ( !(i < commandIndex && psCommands[i]->szOutput && !strcmp(psCommands[i]->szOutput, psCommands[i + 1]->szInput)) || i == commandIndex)
+				if ( !(i < commandIndex && psCommands[i]->szOutput &&
+						!strcmp(psCommands[i]->szOutput, psCommands[i + 1]->szInput))
+						|| i == commandIndex)
 				{
 					if (psCommands[i]->bBackground)
 					{
