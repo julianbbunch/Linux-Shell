@@ -8,23 +8,33 @@
 
 CC = gcc
 CFLAGS = -g -Wall
-SHELL_OBJECTS = bin/CS460_Shell.o
-ALL_OBJECTS = ${SHELL_OBJECTS}
+OBJECTS = bin/CS460_Shell.o \
+	bin/commandline.o \
+	bin/command.o
 
 .PHONY: all clean tarball
 
-all: bin bin/CS460_Shell
+all: bin/CS460_Shell
 
 bin:
 	mkdir -p bin
 	
-bin/CS460_Shell: ${SHELL_OBJECTS}
-	${CC} ${CFLAGS} -o bin/CS460_Shell ${SHELL_OBJECTS}
+bin/command.o: src/command.c include/command.h
+	${CC} ${CFLAGS} -o bin/command.o -c src/command.c
+	
+bin/commandline.o: src/commandline.c include/commandline.h \
+						include/command.h
+	${CC} ${CFLAGS} -o bin/commandline.o -c src/commandline.c
+	
+bin/CS460_Shell: ${OBJECTS}
+	${CC} ${CFLAGS} -o bin/CS460_Shell ${OBJECTS}
 
-bin/CS460_Shell.o:	src/CS460_Shell.c
+bin/CS460_Shell.o:	src/CS460_Shell.c \
+						include/commandline.h \
+						include/command.h
 	${CC} ${CFLAGS} -o bin/CS460_Shell.o -c src/CS460_Shell.c
 	
-valgrind:
+valgrind:	bin/CS460_Shell
 	valgrind -v --leak-check=yes --track-origins=yes --leak-check=full --show-leak-kinds=all bin/CS460_Shell
 	
 debug:
