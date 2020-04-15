@@ -14,11 +14,6 @@
 
 extern void commandCreate (Command *psCommand)
 {
-	/*
-	psCommand->szCommand = malloc(2048);
-	psCommand->szArguments = malloc(2048);
-	psCommand->szOutput = malloc(2048);
-*/
 	memset(psCommand->szArguments, '\0', MAX_COMMAND_SIZE);
 	memset(psCommand->szCommand, '\0', MAX_COMMAND_SIZE);
 	memset(psCommand->szOutput, '\0', MAX_COMMAND_SIZE);
