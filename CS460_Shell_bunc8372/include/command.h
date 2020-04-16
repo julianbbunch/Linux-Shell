@@ -42,8 +42,9 @@ extern char *commandGetCommand(Command *psCommand);
 extern char *commandGetArguments(Command *psCommand);
 extern char *commandGetOutput(Command *psCommand);
 extern bool commandRunInBackground(Command *psCommand);
-extern commandFullCommandString(Command *psCommand, char *pString);
-
+extern void commandFullCommandString(Command *psCommand, char *pString);
+extern void commandExecute(Command *psCommand);
+extern void commandPrintDebug(Command *psCommand);
 
 
 #endif /* INCLUDE_COMMAND_H_ */

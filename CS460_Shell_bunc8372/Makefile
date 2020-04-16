@@ -51,4 +51,3 @@ clean:
 
 tarball: clean
 	tar czf ../CS460_Shell.tar.gz CS460_Shell_bunc8372
-	

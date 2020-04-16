@@ -16,9 +16,6 @@
 #include"../include/commandline.h"
 #include"../include/command.h"
 
-void printCommand(Command *psCommand);
-void executeCommand(Command *psCommand);
-
 /****************************************************************************
  Function:    main
  Description: Runs a shell
@@ -31,8 +28,9 @@ int main(int argc, char *argv[])
 	const size_t sSize = MAX_COMMAND_SIZE;
 	const char *EXIT = "exit\n";
 	int pid = getpid();
-	char *szArgs = malloc(MAX_COMMAND_SIZE);
-	char *szArgsBackup = malloc(MAX_COMMAND_SIZE);
+	char szArgs[MAX_COMMAND_SIZE];
+	char szArgsBackup[MAX_COMMAND_SIZE];
+	char *pArgs = szArgs;
 
 	Command sCommand;
 	Command *psCommand = &sCommand;
@@ -47,7 +45,7 @@ int main(int argc, char *argv[])
 
 		// Input command
 		printf("%d>", pid);
-		getline(&szArgs, (size_t*) &sSize, stdin);
+		getline(&pArgs, (size_t*) &sSize, stdin);
 		memcpy(szArgsBackup, szArgs, strlen(szArgs));
 
 		if (strcmp(szArgsBackup, EXIT))
@@ -58,123 +56,19 @@ int main(int argc, char *argv[])
 			// Print debug info
 			if (argc > 1)
 			{
-				printCommand(psCommand);
+				commandPrintDebug(psCommand);
 			}
 
-			// Execute Commands
+			// Execute Command
 			else
 			{
-				executeCommand(psCommand);
+				commandExecute(psCommand);
 			}
-
 		}
 	}
-
-	// Free data
-	free(szArgs);
-	free(szArgsBackup);
 
 	return 0;
 }
-
-void printCommand(Command *psCommand)
-{
-	printf("command: %s\n", commandGetCommand(psCommand));
-	if (*commandGetArguments(psCommand))
-	{
-		printf("\targuments: %s\n", commandGetArguments(psCommand));
-	}
-	else
-	{
-		printf("\targuments: none\n");
-	}
-	printf("\tredirection:\n");
-	printf("\t\tstdin: none\n");
-	if (*commandGetArguments(psCommand))
-	{
-		printf("\t\tstdout: %s\n", commandGetOutput(psCommand));
-	}
-	else
-	{
-		printf("\t\tstdout: none\n");
-	}
-	printf("\tpipe: none\n");
-	printf("background: ");
-	if (commandRunInBackground(psCommand))
-	{
-		printf("YES\n");
-	}
-	else
-	{
-		printf("no\n");
-	}
-}
-
-void executeCommand(Command *psCommand)
-{
-	char szOutput[MAX_COMMAND_SIZE];
-	char szPath[MAX_COMMAND_SIZE] = "/bin/";
-	char *pToken;
-	char *pSavePtr;
-	char szArgs[MAX_COMMAND_SIZE];
-	char *argv[MAX_COMMAND_SIZE];
-	int i;
-
-	memcpy(szPath + strlen(szPath), commandGetCommand(psCommand), strlen(
-			commandGetCommand(psCommand)));
-	memcpy(szArgs, commandGetArguments(psCommand), strlen(commandGetArguments
-			(psCommand)));
-	argv[0] = malloc(strlen(commandGetCommand(psCommand)));
-	memcpy(argv[0], commandGetCommand(psCommand), strlen(commandGetCommand
-			(psCommand)));
-
-
-	pToken = strtok_r(szArgs, " \n", &pSavePtr);
-	for (i = 1; pToken; i++)
-	{
-		argv[i] = malloc(strlen(pToken));
-		memcpy(argv[i], pToken, strlen(pToken));
-		pToken = strtok_r(NULL, " \n", &pSavePtr);
-	}
-
-	int link[2];
-
-	pipe(link);
-	int pid = fork();
-
-	if(pid == 0)
-	{
-		dup2 (link[1], STDOUT_FILENO);
-		close(link[0]);
-		close(link[1]);
-		execv(szPath, argv);
-	  exit(0);
-	}
-	else
-	{
-		waitpid(pid);
-		close(link[1]);
-		read(link[0], szOutput, sizeof(szOutput));
-		while(*szOutput)
-		{
-			printf("%s\n", szOutput);
-			read(link[0], szOutput, sizeof(szOutput));
-			memset(szOutput, '\0', strlen(szOutput));
-		}
-		wait(NULL);
-	}
-
-	for (i = 0; argv[i]; i++)
-	{
-		memset(argv[i], '\0', strlen(argv[i]));
-		free(argv[i]);
-	}
-
-
-}
-
-
-
 
 
 
