@@ -9,7 +9,6 @@
 CC = gcc
 CFLAGS = -g -Wall
 OBJECTS = bin/CS460_Shell.o \
-	bin/commandline.o \
 	bin/command.o
 
 .PHONY: all clean tarball
@@ -22,15 +21,10 @@ bin:
 bin/command.o: src/command.c include/command.h
 	${CC} ${CFLAGS} -o bin/command.o -c src/command.c
 	
-bin/commandline.o: src/commandline.c include/commandline.h \
-						include/command.h
-	${CC} ${CFLAGS} -o bin/commandline.o -c src/commandline.c
-	
 bin/CS460_Shell: ${OBJECTS}
 	${CC} ${CFLAGS} -o bin/CS460_Shell ${OBJECTS}
 
 bin/CS460_Shell.o:	src/CS460_Shell.c \
-						include/commandline.h \
 						include/command.h
 	${CC} ${CFLAGS} -o bin/CS460_Shell.o -c src/CS460_Shell.c
 	

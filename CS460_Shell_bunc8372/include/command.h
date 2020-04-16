@@ -35,14 +35,8 @@ typedef struct Command
 //****************************************************
 // Functions
 //****************************************************
-extern void commandCreate (Command *psCommand);
-extern void commandTerminate (Command *psCommand);
+extern void commandClear (Command *psCommand);
 extern void commandParse (Command *psCommand, char *szString);
-extern char *commandGetCommand(Command *psCommand);
-extern char *commandGetArguments(Command *psCommand);
-extern char *commandGetOutput(Command *psCommand);
-extern bool commandRunInBackground(Command *psCommand);
-extern void commandFullCommandString(Command *psCommand, char *pString);
 extern void commandExecute(Command *psCommand);
 extern void commandPrintDebug(Command *psCommand);
 

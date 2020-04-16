@@ -14,11 +14,15 @@
 #include <fcntl.h>
 #include <sys/wait.h>
 
-
-
 #include"../include/command.h"
 
-extern void commandCreate (Command *psCommand)
+/****************************************************************************
+ Function:    commandClear
+ Description: zeros out all data in Command
+ Parameters:  psCommand - ptr to Command struct
+ Returned:    None
+ ****************************************************************************/
+extern void commandClear (Command *psCommand)
 {
 	memset(psCommand->szArguments, '\0', MAX_COMMAND_SIZE);
 	memset(psCommand->szCommand, '\0', MAX_COMMAND_SIZE);
@@ -27,11 +31,12 @@ extern void commandCreate (Command *psCommand)
 	psCommand->bRunInBackground = false;
 }
 
-extern void commandTerminate (Command *psCommand)
-{
-
-}
-
+/****************************************************************************
+ Function:    commandParse
+ Description: Fills Command data structure
+ Parameters:  psCommand - ptr to Command struct
+ Returned:    None
+ ****************************************************************************/
 extern void commandParse (Command *psCommand, char *szString)
 {
 	char *pToken = NULL;
@@ -61,44 +66,12 @@ extern void commandParse (Command *psCommand, char *szString)
 	}
 }
 
-extern char *commandGetCommand(Command *psCommand)
-{
-	return psCommand->szCommand;
-}
-
-extern char *commandGetArguments(Command *psCommand)
-{
-	return psCommand->szArguments;
-}
-
-extern char *commandGetOutput(Command *psCommand)
-{
-	return psCommand->szOutput;
-}
-
-extern bool commandRunInBackground(Command *psCommand)
-{
-	return psCommand->bRunInBackground;
-}
-
-extern void commandFullCommandString(Command *psCommand, char *pString)
-{
-	strcat(pString, psCommand->szCommand);
-	strcat(pString, " ");
-	strcat(pString, psCommand->szArguments);
-
-	if (*psCommand->szOutput)
-	{
-		strcat(pString, "> ");
-		strcat(pString, psCommand->szOutput);
-	}
-
-	if (psCommand->bRunInBackground)
-	{
-		strcat(pString, " &");
-	}
-}
-
+/****************************************************************************
+ Function:    commandExecute
+ Description: Executes the command
+ Parameters:  psCommand - ptr to Command struct
+ Returned:    None
+ ****************************************************************************/
 extern void commandExecute(Command *psCommand)
 {
 	int file;
@@ -107,22 +80,23 @@ extern void commandExecute(Command *psCommand)
 	char *pSavePtr;
 	char szArgs[MAX_COMMAND_SIZE];
 	char *argv[MAX_COMMAND_SIZE];
-	int pid;
+	int pid, i;
 
 	// Set up the path
-	memcpy(szPath, psCommand->szCommand, strlen(psCommand->szCommand));
+	memcpy(szPath, psCommand->szCommand, strlen(psCommand->szCommand) + 1);
 
 	// Set up the arguments
-	memcpy(szArgs, psCommand->szArguments, strlen(psCommand->szArguments));
+	memcpy(szArgs, psCommand->szArguments, strlen(psCommand->szArguments) + 1);
 	argv[0] = malloc(strlen(psCommand->szCommand));
-	memcpy(argv[0], psCommand->szCommand, strlen(psCommand->szCommand));
+	memcpy(argv[0], psCommand->szCommand, strlen(psCommand->szCommand) + 1);
 	pToken = strtok_r(szArgs, " \n", &pSavePtr);
-	for (int i = 1; pToken; i++)
+	for (i = 1; pToken; i++)
 	{
-		argv[i] = malloc(strlen(pToken));
-		memcpy(argv[i], pToken, strlen(pToken));
+		argv[i] = malloc(strlen(pToken) + 1);
+		memcpy(argv[i], pToken, strlen(pToken) + 1);
 		pToken = strtok_r(NULL, " \n", &pSavePtr);
 	}
+	argv[i] = NULL;
 
 
 	pid = fork();
@@ -130,7 +104,7 @@ extern void commandExecute(Command *psCommand)
 	// Child process
 	if (pid == 0)
 	{
-		if(*commandGetOutput(psCommand))
+		if(*psCommand->szOutput)
 		{
 			file = open(psCommand->szOutput, O_WRONLY | O_TRUNC | O_CREAT, 0644);
 			dup2 ((int)file, STDOUT_FILENO);
@@ -155,17 +129,23 @@ extern void commandExecute(Command *psCommand)
 
 	for (int i = 0; argv[i]; i++)
 	{
-		memset(argv[i], '\0', strlen(argv[i]));
+		memset(argv[i], '\0', strlen(argv[i]) + 1);
 		free(argv[i]);
 	}
 }
 
+/****************************************************************************
+ Function:    commandPrintDebug
+ Description: Prints the command and arguments for debugging option
+ Parameters:  psCommand - ptr to Command struct
+ Returned:    None
+ ****************************************************************************/
 extern void commandPrintDebug(Command *psCommand)
 {
-	printf("command: %s\n", commandGetCommand(psCommand));
-	if (*commandGetArguments(psCommand))
+	printf("command: %s\n", psCommand->szCommand);
+	if (*psCommand->szArguments)
 	{
-		printf("\targuments: %s\n", commandGetArguments(psCommand));
+		printf("\targuments: %s\n", psCommand->szArguments);
 	}
 	else
 	{
@@ -173,9 +153,9 @@ extern void commandPrintDebug(Command *psCommand)
 	}
 	printf("\tredirection:\n");
 	printf("\t\tstdin: none\n");
-	if (*commandGetArguments(psCommand))
+	if (*psCommand->szOutput)
 	{
-		printf("\t\tstdout: %s\n", commandGetOutput(psCommand));
+		printf("\t\tstdout: %s\n", psCommand->szOutput);
 	}
 	else
 	{
@@ -183,7 +163,7 @@ extern void commandPrintDebug(Command *psCommand)
 	}
 	printf("\tpipe: none\n");
 	printf("background: ");
-	if (commandRunInBackground(psCommand))
+	if (psCommand->bRunInBackground)
 	{
 		printf("YES\n");
 	}
